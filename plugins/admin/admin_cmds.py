@@ -561,3 +561,4 @@ async def test_captcha_command(client, message):
     text += f"<b>Time Taken:</b> <code>{time_taken:.2f}</code> seconds"
     
     await x.edit(text)
+
