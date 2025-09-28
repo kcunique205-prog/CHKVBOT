@@ -1,0 +1,138 @@
+import httpx
+import asyncio
+import time
+
+API_KEY = None
+CAPTCHA_SERVER = None
+TIMEOUT = 300  # Timeout in seconds
+
+# Function to load solver configuration
+def load_solver_config():
+    global API_KEY, CAPTCHA_SERVER
+    try:
+        with open("solver_api.txt", "r") as file:
+            config = file.read().strip().split("|")
+            if config[0] == "1":
+                CAPTCHA_SERVER = f"http://{config[1]}"
+                API_KEY = config[2]
+            elif config[0] == "2":
+                CAPTCHA_SERVER = "https://api.2captcha.com"
+                API_KEY = config[1]
+    except Exception as e:
+        return f"Error loading solver configuration: {e}"
+
+async def get_balance():
+    url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=getbalance"
+    retries = 5
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        for attempt in range(retries):
+            try:
+                response = await client.get(url)
+                if response.status_code == 200:
+                    return response.text
+                else:
+                    return f"Error getting balance: {response.status_code}"
+            except httpx.ConnectTimeout:
+                await asyncio.sleep(2)  # Wait before retrying
+            except httpx.RequestError as e:
+                return f"Error getting balance: {e}"
+        return "Failed to connect after multiple retries."
+
+
+# Function to solve reCAPTCHA
+async def solve_recaptcha(url, site_key, invisible=0):
+    max_retries = 5
+    retry_delay = 5
+
+    for attempt in range(max_retries):
+        create_task_data = {
+            "key": API_KEY,
+            "method": "userrecaptcha",
+            "googlekey": site_key,
+            "pageurl": url,
+            "invisible": invisible
+        }
+
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.post(f"{CAPTCHA_SERVER}/in.php", data=create_task_data)
+            create_task_response = response.text
+
+            if response.status_code != 200 or "ERROR" in create_task_response:
+                if "ERROR_NO_SLOT_AVAILABLE" in create_task_response and attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)  # Short wait before retrying
+                    continue
+                return f"Error creating reCAPTCHA task: {create_task_response}"
+
+            task_id = create_task_response.split('|')[-1]
+
+        # Step 2: Poll for the result
+        result_url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=get&id={task_id}"
+        start_time = time.time()
+
+        while time.time() - start_time < TIMEOUT:
+            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+                response = await client.get(result_url)
+                result_text = response.text
+
+                if response.status_code != 200:
+                    return f"Error getting reCAPTCHA result: {response.status_code}"
+
+                if result_text.startswith("CAPCHA_NOT_READY"):
+                    await asyncio.sleep(2) 
+                    continue
+                elif result_text.startswith("ERROR"):
+                    return f"Error in reCAPTCHA result: {result_text}"
+
+                captcha_solution = result_text.split('|')[-1]
+                return captcha_solution
+
+        return "reCAPTCHA solving timed out."
+
+async def solve_hcaptcha(url, site_key, invisible=0):
+    max_retries = 5
+    retry_delay = 5  # Retry delay in seconds
+
+    for attempt in range(max_retries):
+        # Step 1: Create the hCaptcha task
+        create_task_data = {
+            "key": API_KEY,
+            "method": "hcaptcha",  # Specify hCaptcha method
+            "googlekey": site_key,  # Replace with the actual hCaptcha site key
+            "pageurl": url,  # URL with hCaptcha
+            "invisible": invisible
+        }
+
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.post(f"{CAPTCHA_SERVER}/in.php", data=create_task_data)
+            create_task_response = response.text
+
+            if response.status_code != 200 or "ERROR" in create_task_response:
+                if "ERROR_NO_SLOT_AVAILABLE" in create_task_response and attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)  # Short wait before retrying
+                    continue
+                return f"Error creating hCaptcha task: {create_task_response}"
+
+            task_id = create_task_response.split('|')[-1]
+
+        # Step 2: Poll for the result
+        result_url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=get&id={task_id}"
+        start_time = time.time()
+
+        while time.time() - start_time < TIMEOUT:
+            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+                response = await client.get(result_url)
+                result_text = response.text
+
+                if response.status_code != 200:
+                    return f"Error getting hCaptcha result: {response.status_code}"
+
+                if result_text.startswith("CAPCHA_NOT_READY"):
+                    await asyncio.sleep(2)  # Reduced polling interval for faster checks
+                    continue
+                elif result_text.startswith("ERROR"):
+                    return f"Error in hCaptcha result: {result_text}"
+
+                captcha_solution = result_text.split('|')[-1]
+                return captcha_solution
+
+        return "hCaptcha solving timed out."
