@@ -39,3 +39,4 @@ urllib3==2.2.3
 user_agent==0.1.10
 yarl==1.16.0
 pypasser==0.0.5
+cryptography==42.0.7
