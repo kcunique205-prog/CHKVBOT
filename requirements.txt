@@ -38,3 +38,4 @@ typing_extensions==4.12.2
 urllib3==2.2.3
 user_agent==0.1.10
 yarl==1.16.0
+pypasser==0.0.5
