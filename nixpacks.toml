@@ -1,2 +1,5 @@
 [build]
-packages = ["ffmpeg"]
+buildCommand = "pip install -r requirements.txt"
+
+[phases.setup]
+nixPkgs = ["ffmpeg"]
