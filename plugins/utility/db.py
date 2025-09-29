@@ -6,9 +6,7 @@ import asyncio
 
 
 # Use direct connection format instead of SRV
-client = AsyncIOMotorClient('mongodb://USERNAME:PASSWORD@ac-yx3qjpj-shard-00-00.npz50f1.mongodb.net:27017,
-ac-yx3qjpj-shard-00-01.npz50f1.mongodb.net:27017,
-ac-yx3qjpj-shard-00-02.npz50f1.mongodb.net:27017/?replicaSet=atlas-xxxx-shard-0&ssl=true&authSource=admin')
+client = AsyncIOMotorClient('mongodb://YtInayatGaming:InayatGaming_Mongodb@ac-yx3qjpj-shard-00-00.npz50f1.mongodb.net:27017,ac-yx3qjpj-shard-00-01.npz50f1.mongodb.net:27017,ac-yx3qjpj-shard-00-02.npz50f1.mongodb.net:27017/?replicaSet=atlas-xxxx-shard-0&ssl=true&authSource=admin&appName=YtInayatGaming')
 
 db = client['telegram_bot']
 # Your collection definitions...
@@ -454,6 +452,7 @@ async def init():
     await initialize_default_gateways()
 
     print("MongoDB connection established and initialization complete.")
+
 
 
 
