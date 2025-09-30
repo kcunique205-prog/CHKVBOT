@@ -1,17 +1,25 @@
-import random
+importimport random
 import string
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timedelta
 import asyncio
+import certifi
 
-
-# Use direct connection format instead of SRV
-client = AsyncIOMotorClient('mongodb://YtInayatGaming:InayatGaming_Mongodb@ytinayatgaming-shard-00-00.lulqg.mongodb.net:27017,"
+# ✅ Use direct connection format instead of SRV
+MONGO_URI = (
+    "mongodb://YtInayatGaming:InayatGaming_Mongodb@"
+    "ytinayatgaming-shard-00-00.lulqg.mongodb.net:27017,"
     "ytinayatgaming-shard-00-01.lulqg.mongodb.net:27017,"
     "ytinayatgaming-shard-00-02.lulqg.mongodb.net:27017/"
-    "?ssl=true&replicaSet=atlas-dvg04r-shard-0&authSource=admin&retryWrites=true&w=majority&appName=YtInayatGaming')
+    "?ssl=true&replicaSet=atlas-dvg04r-shard-0"
+    "&authSource=admin&retryWrites=true&w=majority&appName=YtInayatGaming"
+)
+
+# ✅ Add certifi so TLS works properly
+client = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
 
 db = client['telegram_bot']
+
 # Your collection definitions...
 users_collection = db['users']
 authorized_users_collection = db['authorized_users']
@@ -455,6 +463,7 @@ async def init():
     await initialize_default_gateways()
 
     print("MongoDB connection established and initialization complete.")
+
 
 
 
