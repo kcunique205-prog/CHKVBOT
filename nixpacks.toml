@@ -2,4 +2,4 @@
 buildCommand = "pip install -r requirements.txt"
 
 [phases.setup]
-nixPkgs = ["ffmpeg", "ca-certificates", "openssl"]
+nixPkgs = ["ffmpeg", "cacert"]
