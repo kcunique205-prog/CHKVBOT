@@ -1,4 +1,4 @@
-importimport random
+import random
 import string
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timedelta
@@ -463,6 +463,7 @@ async def init():
     await initialize_default_gateways()
 
     print("MongoDB connection established and initialization complete.")
+
 
 
 
