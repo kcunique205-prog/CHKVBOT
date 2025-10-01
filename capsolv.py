@@ -29,7 +29,6 @@ def load_solver_config():
 
 # Function to get captcha solver balance
 async def get_balance():
-    # Ensure config is loaded
     if not CAPTCHA_SERVER or not API_KEY:
         load_result = load_solver_config()
         if load_result:
@@ -50,7 +49,7 @@ async def get_balance():
                     return f"Error getting balance: {response.status_code}"
             except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
                 await asyncio.sleep(2)
-            except httpx.RequestError as e:
+            except httpx.HTTPError as e:  # ✅ fixed to HTTPError
                 return f"Error getting balance: {e}"
 
         return "Failed to connect after multiple retries."
@@ -78,7 +77,11 @@ async def solve_recaptcha(url, site_key, invisible=0):
         }
 
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.post(f"{CAPTCHA_SERVER}/in.php", data=create_task_data)
+            try:
+                response = await client.post(f"{CAPTCHA_SERVER}/in.php", data=create_task_data)
+            except httpx.HTTPError as e:
+                return f"Error creating reCAPTCHA task: {e}"
+
             create_task_response = response.text
 
             if response.status_code != 200 or "ERROR" in create_task_response:
@@ -94,7 +97,11 @@ async def solve_recaptcha(url, site_key, invisible=0):
 
         while time.time() - start_time < TIMEOUT:
             async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-                response = await client.get(result_url)
+                try:
+                    response = await client.get(result_url)
+                except httpx.HTTPError as e:
+                    return f"Error getting reCAPTCHA result: {e}"
+
                 result_text = response.text
 
                 if response.status_code != 200:
@@ -134,7 +141,11 @@ async def solve_hcaptcha(url, site_key, invisible=0):
         }
 
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.post(f"{CAPTCHA_SERVER}/in.php", data=create_task_data)
+            try:
+                response = await client.post(f"{CAPTCHA_SERVER}/in.php", data=create_task_data)
+            except httpx.HTTPError as e:
+                return f"Error creating hCaptcha task: {e}"
+
             create_task_response = response.text
 
             if response.status_code != 200 or "ERROR" in create_task_response:
@@ -150,7 +161,11 @@ async def solve_hcaptcha(url, site_key, invisible=0):
 
         while time.time() - start_time < TIMEOUT:
             async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-                response = await client.get(result_url)
+                try:
+                    response = await client.get(result_url)
+                except httpx.HTTPError as e:
+                    return f"Error getting hCaptcha result: {e}"
+
                 result_text = response.text
 
                 if response.status_code != 200:
@@ -164,5 +179,4 @@ async def solve_hcaptcha(url, site_key, invisible=0):
 
                 captcha_solution = result_text.split('|')[-1]
                 return captcha_solution
-
-        return "hCaptcha solving timed out."
+        return "hCaptcha solving timed out." 
