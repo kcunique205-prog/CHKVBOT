@@ -15,7 +15,7 @@ def load_solver_config():
             config = file.read().strip().split("|")
             if config[0] == "1":
                 # ensure scheme is included
-                if not config[1].startswith("http"):
+                if not config[1].startswith(("http://", "https://")):
                     CAPTCHA_SERVER = f"http://{config[1]}"
                 else:
                     CAPTCHA_SERVER = config[1]
@@ -29,8 +29,12 @@ def load_solver_config():
 
 # Function to get captcha solver balance
 async def get_balance():
+    if not CAPTCHA_SERVER or not API_KEY:
+        return "Solver configuration not loaded."
+
     url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=getbalance"
     retries = 5
+
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         for attempt in range(retries):
             try:
@@ -39,15 +43,19 @@ async def get_balance():
                     return response.text
                 else:
                     return f"Error getting balance: {response.status_code}"
-            except httpx.TimeoutException:  # ✅ handles connect/read/write timeouts
-                await asyncio.sleep(2)  # retry after delay
-            except httpx.HTTPError as e:  # ✅ base class for all httpx errors
+            except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
+                await asyncio.sleep(2)
+            except httpx.RequestError as e:
                 return f"Error getting balance: {e}"
+
         return "Failed to connect after multiple retries."
 
 
 # Function to solve reCAPTCHA
 async def solve_recaptcha(url, site_key, invisible=0):
+    if not CAPTCHA_SERVER or not API_KEY:
+        return "Solver configuration not loaded."
+
     max_retries = 5
     retry_delay = 5
 
@@ -97,6 +105,9 @@ async def solve_recaptcha(url, site_key, invisible=0):
 
 # Function to solve hCaptcha
 async def solve_hcaptcha(url, site_key, invisible=0):
+    if not CAPTCHA_SERVER or not API_KEY:
+        return "Solver configuration not loaded."
+
     max_retries = 5
     retry_delay = 5
 
@@ -136,9 +147,4 @@ async def solve_hcaptcha(url, site_key, invisible=0):
                     await asyncio.sleep(2)
                     continue
                 elif result_text.startswith("ERROR"):
-                    return f"Error in hCaptcha result: {result_text}"
-
-                captcha_solution = result_text.split('|')[-1]
-                return captcha_solution
-
-        return "hCaptcha solving timed out."
+                    return f"Error
