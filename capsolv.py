@@ -1,6 +1,7 @@
 import httpx
 import asyncio
 import time
+from httpx import RequestError, ConnectTimeout   # ✅ FIXED import
 
 API_KEY = None
 CAPTCHA_SERVER = None
@@ -13,7 +14,11 @@ def load_solver_config():
         with open("solver_api.txt", "r") as file:
             config = file.read().strip().split("|")
             if config[0] == "1":
-                CAPTCHA_SERVER = f"http://{config[1]}"
+                # ensure scheme is included
+                if not config[1].startswith("http"):
+                    CAPTCHA_SERVER = f"http://{config[1]}"
+                else:
+                    CAPTCHA_SERVER = config[1]
                 API_KEY = config[2]
             elif config[0] == "2":
                 CAPTCHA_SERVER = "https://api.2captcha.com"
@@ -32,9 +37,9 @@ async def get_balance():
                     return response.text
                 else:
                     return f"Error getting balance: {response.status_code}"
-            except httpx.ConnectTimeout:
+            except ConnectTimeout:  # ✅ FIXED use imported
                 await asyncio.sleep(2)  # Wait before retrying
-            except httpx.RequestError as e:
+            except RequestError as e:  # ✅ FIXED use imported
                 return f"Error getting balance: {e}"
         return "Failed to connect after multiple retries."
 
@@ -59,13 +64,12 @@ async def solve_recaptcha(url, site_key, invisible=0):
 
             if response.status_code != 200 or "ERROR" in create_task_response:
                 if "ERROR_NO_SLOT_AVAILABLE" in create_task_response and attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)  # Short wait before retrying
+                    await asyncio.sleep(retry_delay)
                     continue
                 return f"Error creating reCAPTCHA task: {create_task_response}"
 
             task_id = create_task_response.split('|')[-1]
 
-        # Step 2: Poll for the result
         result_url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=get&id={task_id}"
         start_time = time.time()
 
@@ -78,7 +82,7 @@ async def solve_recaptcha(url, site_key, invisible=0):
                     return f"Error getting reCAPTCHA result: {response.status_code}"
 
                 if result_text.startswith("CAPCHA_NOT_READY"):
-                    await asyncio.sleep(2) 
+                    await asyncio.sleep(2)
                     continue
                 elif result_text.startswith("ERROR"):
                     return f"Error in reCAPTCHA result: {result_text}"
@@ -88,17 +92,17 @@ async def solve_recaptcha(url, site_key, invisible=0):
 
         return "reCAPTCHA solving timed out."
 
+
 async def solve_hcaptcha(url, site_key, invisible=0):
     max_retries = 5
-    retry_delay = 5  # Retry delay in seconds
+    retry_delay = 5
 
     for attempt in range(max_retries):
-        # Step 1: Create the hCaptcha task
         create_task_data = {
             "key": API_KEY,
-            "method": "hcaptcha",  # Specify hCaptcha method
-            "googlekey": site_key,  # Replace with the actual hCaptcha site key
-            "pageurl": url,  # URL with hCaptcha
+            "method": "hcaptcha",
+            "googlekey": site_key,
+            "pageurl": url,
             "invisible": invisible
         }
 
@@ -108,13 +112,12 @@ async def solve_hcaptcha(url, site_key, invisible=0):
 
             if response.status_code != 200 or "ERROR" in create_task_response:
                 if "ERROR_NO_SLOT_AVAILABLE" in create_task_response and attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)  # Short wait before retrying
+                    await asyncio.sleep(retry_delay)
                     continue
                 return f"Error creating hCaptcha task: {create_task_response}"
 
             task_id = create_task_response.split('|')[-1]
 
-        # Step 2: Poll for the result
         result_url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=get&id={task_id}"
         start_time = time.time()
 
@@ -127,7 +130,7 @@ async def solve_hcaptcha(url, site_key, invisible=0):
                     return f"Error getting hCaptcha result: {response.status_code}"
 
                 if result_text.startswith("CAPCHA_NOT_READY"):
-                    await asyncio.sleep(2)  # Reduced polling interval for faster checks
+                    await asyncio.sleep(2)
                     continue
                 elif result_text.startswith("ERROR"):
                     return f"Error in hCaptcha result: {result_text}"
