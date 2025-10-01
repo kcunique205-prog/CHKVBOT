@@ -2,9 +2,16 @@ import httpx
 import asyncio
 import time
 
+# ✅ Handle RequestError import across all httpx versions
+try:
+    from httpx import RequestError, ConnectTimeout
+except ImportError:
+    from httpx._exceptions import RequestError, ConnectTimeout
+
 API_KEY = None
 CAPTCHA_SERVER = None
 TIMEOUT = 300  # Timeout in seconds
+
 
 # Function to load solver configuration
 def load_solver_config():
@@ -26,6 +33,7 @@ def load_solver_config():
         return f"Error loading solver configuration: {e}"
 
 
+# Function to get captcha solver balance
 async def get_balance():
     url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=getbalance"
     retries = 5
@@ -37,9 +45,9 @@ async def get_balance():
                     return response.text
                 else:
                     return f"Error getting balance: {response.status_code}"
-            except httpx.ConnectTimeout:  # ✅ works on all versions
+            except ConnectTimeout:  # ✅ works on all versions
                 await asyncio.sleep(2)  # Wait before retrying
-            except httpx.RequestError as e:  # ✅ works on all versions
+            except RequestError as e:  # ✅ works on all versions
                 return f"Error getting balance: {e}"
         return "Failed to connect after multiple retries."
 
