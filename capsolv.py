@@ -1,6 +1,7 @@
 import httpx
 import asyncio
 import time
+from httpx._exceptions import RequestError, ConnectTimeout  # ✅ works for >=0.25
 
 API_KEY = None
 CAPTCHA_SERVER = None
@@ -138,3 +139,4 @@ async def solve_hcaptcha(url, site_key, invisible=0):
                 return captcha_solution
 
         return "hCaptcha solving timed out."
+
