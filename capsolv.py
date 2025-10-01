@@ -29,8 +29,13 @@ def load_solver_config():
 
 # Function to get captcha solver balance
 async def get_balance():
+    # Ensure config is loaded
     if not CAPTCHA_SERVER or not API_KEY:
-        return "Solver configuration not loaded."
+        load_result = load_solver_config()
+        if load_result:
+            return f"Failed to load solver config: {load_result}"
+        if not CAPTCHA_SERVER or not API_KEY:
+            return "Solver configuration not loaded."
 
     url = f"{CAPTCHA_SERVER}/res.php?key={API_KEY}&action=getbalance"
     retries = 5
@@ -54,7 +59,11 @@ async def get_balance():
 # Function to solve reCAPTCHA
 async def solve_recaptcha(url, site_key, invisible=0):
     if not CAPTCHA_SERVER or not API_KEY:
-        return "Solver configuration not loaded."
+        load_result = load_solver_config()
+        if load_result:
+            return f"Failed to load solver config: {load_result}"
+        if not CAPTCHA_SERVER or not API_KEY:
+            return "Solver configuration not loaded."
 
     max_retries = 5
     retry_delay = 5
@@ -106,7 +115,11 @@ async def solve_recaptcha(url, site_key, invisible=0):
 # Function to solve hCaptcha
 async def solve_hcaptcha(url, site_key, invisible=0):
     if not CAPTCHA_SERVER or not API_KEY:
-        return "Solver configuration not loaded."
+        load_result = load_solver_config()
+        if load_result:
+            return f"Failed to load solver config: {load_result}"
+        if not CAPTCHA_SERVER or not API_KEY:
+            return "Solver configuration not loaded."
 
     max_retries = 5
     retry_delay = 5
