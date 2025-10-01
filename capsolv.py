@@ -147,4 +147,9 @@ async def solve_hcaptcha(url, site_key, invisible=0):
                     await asyncio.sleep(2)
                     continue
                 elif result_text.startswith("ERROR"):
-                    return f"Error
+                    return f"Error in hCaptcha result: {result_text}"
+
+                captcha_solution = result_text.split('|')[-1]
+                return captcha_solution
+
+        return "hCaptcha solving timed out."
