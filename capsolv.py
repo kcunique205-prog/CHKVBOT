@@ -2,12 +2,6 @@ import httpx
 import asyncio
 import time
 
-# ✅ Handle RequestError import across all httpx versions
-try:
-    from httpx import RequestError, ConnectTimeout
-except ImportError:
-    from httpx._exceptions import RequestError, ConnectTimeout
-
 API_KEY = None
 CAPTCHA_SERVER = None
 TIMEOUT = 300  # Timeout in seconds
@@ -45,9 +39,9 @@ async def get_balance():
                     return response.text
                 else:
                     return f"Error getting balance: {response.status_code}"
-            except ConnectTimeout:  # ✅ works on all versions
-                await asyncio.sleep(2)  # Wait before retrying
-            except RequestError as e:  # ✅ works on all versions
+            except httpx.TimeoutException:  # ✅ handles connect/read/write timeouts
+                await asyncio.sleep(2)  # retry after delay
+            except httpx.HTTPError as e:  # ✅ base class for all httpx errors
                 return f"Error getting balance: {e}"
         return "Failed to connect after multiple retries."
 
